@@ -139,11 +139,11 @@ export default function DashboardCharts() {
   }, [filtered, selected, xAxisType]);
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <h1 className="text-2xl font-bold">Dashboard Charts</h1>
+    <div className="mx-auto max-w-6xl p-3 sm:p-6">
+      <h1 className="text-xl sm:text-2xl font-bold">Dashboard Charts</h1>
 
       {/* Controls */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
         <Segmented
           label="Stage"
           value={stage}
@@ -161,20 +161,20 @@ export default function DashboardCharts() {
           ]}
         />
         {selected && (
-          <button onClick={() => setSelected(null)} className="ml-auto rounded-lg border px-3 py-1 text-sm hover:bg-slate-50">
+          <button onClick={() => setSelected(null)} className="w-full sm:w-auto rounded-lg border px-3 py-1 text-sm hover:bg-slate-50">
             Clear selection
           </button>
         )}
       </div>
 
       {/* Chart */}
-      <div className="mt-6 h-72 w-full rounded-2xl border p-3">
+      <div className="mt-6 h-64 sm:h-72 w-full rounded-2xl border p-2 sm:p-3">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barCategoryGap={20}>
-            <XAxis dataKey={xAxisType} tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} label={{ value: 'Projects', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} />
+            <XAxis dataKey={xAxisType} tick={{ fontSize: 10, angle: -45, textAnchor: 'end' }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 10 }} label={{ value: 'Projects', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12 } }} />
             <Tooltip content={<CustomTooltip xAxisType={xAxisType} />} cursor={{ fill: "#f1f5f9" }} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Legend wrapperStyle={{ fontSize: 10 }} />
             {REGIONS.map((reg) => (
               <Bar
                 key={reg}
@@ -192,13 +192,13 @@ export default function DashboardCharts() {
       </div>
 
       {/* X-Axis Selector Dropdowns */}
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
+      <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
           <span className="text-sm font-medium text-slate-700">X-Axis:</span>
           <select
             value={xAxisType}
             onChange={(e) => handleXAxisChange(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full sm:w-auto rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             disabled={isLoading}
           >
             <option value="Industry">Industry</option>
@@ -222,13 +222,13 @@ export default function DashboardCharts() {
 
       {/* Table */}
       <div className="mt-6 rounded-2xl border">
-        <div className="flex items-center justify-between border-b p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b p-4 gap-2">
           <h2 className="text-lg font-semibold">Details</h2>
-          <div className="text-sm text-slate-600">
+          <div className="text-sm text-slate-600 text-center sm:text-left">
             {selected ? (
               <>
                 Showing <strong>{tableRows.length}</strong> records for{" "}
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 flex-wrap justify-center sm:justify-start">
                   <Swatch color={REGION_COLORS[selected.region]} />
                   <span>{selected.xAxisValue}</span>
                   <span>·</span>
@@ -242,36 +242,38 @@ export default function DashboardCharts() {
             )}
           </div>
         </div>
-        <div className="max-h-80 overflow-auto p-4">
+        <div className="max-h-80 overflow-auto p-2 sm:p-4">
           {selected ? (
-            <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-white">
-                <tr className="text-slate-600">
-                  <th className="p-2">Project</th>
-                  <th className="p-2">Industry</th>
-                  <th className="p-2">Region</th>
-                  <th className="p-2">Stage</th>
-                  <th className="p-2">Date</th>
-                  <th className="p-2">Product</th>
-                  <th className="p-2">Expert</th>
-                  <th className="p-2">CSAT</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableRows.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="p-2">{r.project}</td>
-                    <td className="p-2">{r.industry}</td>
-                    <td className="p-2">{r.region}</td>
-                    <td className="p-2">{r.stage}</td>
-                    <td className="p-2">{formatDate(r.date)}</td>
-                    <td className="p-2">{r.product}</td>
-                    <td className="p-2">{r.expert}</td>
-                    <td className="p-2">{r.csat}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-full">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="text-slate-600">
+                    <th className="p-2 text-xs sm:text-sm">Project</th>
+                    <th className="p-2 text-xs sm:text-sm">Industry</th>
+                    <th className="p-2 text-xs sm:text-sm">Region</th>
+                    <th className="p-2 text-xs sm:text-sm">Stage</th>
+                    <th className="p-2 text-xs sm:text-sm">Date</th>
+                    <th className="p-2 text-xs sm:text-sm">Product</th>
+                    <th className="p-2 text-xs sm:text-sm">Expert</th>
+                    <th className="p-2 text-xs sm:text-sm">CSAT</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {tableRows.map((r) => (
+                    <tr key={r.id} className="border-t">
+                      <td className="p-2 text-xs sm:text-sm">{r.project}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.industry}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.region}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.stage}</td>
+                      <td className="p-2 text-xs sm:text-sm">{formatDate(r.date)}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.product}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.expert}</td>
+                      <td className="p-2 text-xs sm:text-sm">{r.csat}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <div className="p-2 text-sm text-slate-600">No selection yet.</div>
           )}
@@ -284,14 +286,14 @@ export default function DashboardCharts() {
 function Segmented({ label, value, onChange, options }) {
   const opts = options.map(o => (typeof o === "string" ? { label: o, value: o } : o));
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-slate-600">{label}</span>
-      <div className="inline-flex overflow-hidden rounded-xl border">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+      <span className="text-xs sm:text-xs font-medium uppercase tracking-wide text-slate-600">{label}</span>
+      <div className="inline-flex overflow-hidden rounded-xl border w-full sm:w-auto">
         {opts.map((o) => (
           <button
             key={o.value}
             onClick={() => onChange(o.value)}
-            className={`px-3 py-1 text-sm ${
+            className={`flex-1 sm:flex-none px-2 sm:px-3 py-2 sm:py-1 text-xs sm:text-sm transition-colors ${
               o.value === value ? "bg-indigo-600 font-semibold text-white" : "bg-white text-slate-700 hover:bg-slate-50"
             }`}
           >
@@ -306,10 +308,10 @@ function Segmented({ label, value, onChange, options }) {
 function CustomTooltip({ active, payload, label, xAxisType }) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-lg border bg-white p-2 text-xs shadow-sm">
-      <div className="font-semibold">{xAxisType}: {label}</div>
+    <div className="rounded-lg border bg-white p-2 text-xs shadow-sm max-w-xs">
+      <div className="font-semibold text-xs">{xAxisType}: {label}</div>
       {payload.map((pl) => (
-        <div key={pl.dataKey} className="flex items-center gap-2">
+        <div key={pl.dataKey} className="flex items-center gap-2 text-xs">
           <Swatch color={pl.fill} />
           <span>
             {pl.dataKey}: <strong>{pl.value}</strong> projects
