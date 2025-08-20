@@ -2,18 +2,19 @@ import React from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 /**
- * Standalone demo of the sketch:
- * - Stacked bars by Industry
- * - Color by Region (EMEA, APAC, NA, LATAM)
- * - Stage toggle (Closed / Active / Proposal)
- * - Time toggle (Month / Quarter)
- * - Clicking a stack segment reveals the filtered table
+ * Modified dashboard with dropdown selectors for x-axis values:
+ * - X-axis options: Industry, Region, Product, Expert, CSAT
+ * - Y-axis: Number of projects
+ * - Dropdown selectors underneath the chart
+ * - Emulated database fetches when x-axis changes
  */
 
 export default function DashboardCharts() {
   const [stage, setStage] = React.useState("Active"); // Active | Closed | Proposal
-  const [granularity, setGranularity] = React.useState("month"); // month | quarter
-  const [selected, setSelected] = React.useState(null); // { industry, region }
+  const [granularity, setGranularity] = React.useState("month"); // month | quarter | year
+  const [selected, setSelected] = React.useState(null); // { xAxisValue, yAxisValue }
+  const [xAxisType, setXAxisType] = React.useState("Industry"); // Industry | Region | Product | Expert | CSAT
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const REGION_COLORS = {
     EMEA: "#2563eb", // blue
@@ -24,35 +25,118 @@ export default function DashboardCharts() {
 
   const INDUSTRIES = ["Retail", "Manufacturing", "Accountants"];
   const REGIONS = Object.keys(REGION_COLORS);
+  const PRODUCTS = ["Core", "Sync", "Analytics", "AI"];
+  const EXPERTS = ["Ann", "Ben", "Chao", "Dee", "Evan"];
+  const CSAT_VALUES = ["😀", "🙂", "😐", "🙁"];
+
+  const timeWindowMonths = granularity === "month" ? 3 : granularity === "quarter" ? 9 : 12;
 
   // Mock records
   const [records] = React.useState(() => createMockData({
     industries: INDUSTRIES,
     regions: REGIONS,
-    monthsBack: granularity === "month" ? 3 : 9,
+    products: PRODUCTS,
+    experts: EXPERTS,
+    csatValues: CSAT_VALUES,
+    monthsBack: timeWindowMonths,
   }));
 
-  const timeWindowMonths = granularity === "month" ? 3 : 9;
   const cutoff = addMonths(new Date(), -timeWindowMonths);
   const filtered = React.useMemo(
     () => records.filter(r => r.stage === stage && new Date(r.date) >= cutoff),
     [records, stage, cutoff]
   );
 
+  // Get available values for the selected x-axis type
+  const getXAxisValues = () => {
+    switch (xAxisType) {
+      case "Industry":
+        return INDUSTRIES;
+      case "Region":
+        return REGIONS;
+      case "Product":
+        return PRODUCTS;
+      case "Expert":
+        return EXPERTS;
+      case "CSAT":
+        return CSAT_VALUES;
+      default:
+        return INDUSTRIES;
+    }
+  };
+
+  // Get color for a specific value based on x-axis type
+  const getValueColor = (value) => {
+    if (xAxisType === "Region") {
+      return REGION_COLORS[value] || "#6b7280";
+    }
+    // Generate consistent colors for other x-axis types
+    const colors = ["#2563eb", "#f59e0b", "#ef4444", "#a855f7", "#10b981", "#f97316", "#8b5cf6", "#ec4899"];
+    const index = getXAxisValues().indexOf(value);
+    return colors[index % colors.length];
+  };
+
+  // Emulate database fetch when x-axis type changes
+  const handleXAxisChange = async (newXAxisType) => {
+    setIsLoading(true);
+    setXAxisType(newXAxisType);
+    setSelected(null); // Clear selection when x-axis changes
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsLoading(false);
+  };
+
   const chartData = React.useMemo(() => {
-    return INDUSTRIES.map(ind => {
-      const row = { industry: ind };
+    const xAxisValues = getXAxisValues();
+    return xAxisValues.map(value => {
+      const row = { [xAxisType]: value };
+      // Create stacked bars by region for each x-axis value
       REGIONS.forEach(reg => {
-        row[reg] = filtered.filter(r => r.industry === ind && r.region === reg).length;
+        row[reg] = filtered.filter(r => {
+          switch (xAxisType) {
+            case "Industry":
+              return r.industry === value && r.region === reg;
+            case "Region":
+              return r.region === value && r.region === reg;
+            case "Product":
+              return r.product === value && r.region === reg;
+            case "Expert":
+              return r.expert === value && r.region === reg;
+            case "CSAT":
+              return r.csat === value && r.region === reg;
+            default:
+              return false;
+          }
+        }).length;
       });
       return row;
     });
-  }, [filtered]);
+  }, [filtered, xAxisType]);
 
   const tableRows = React.useMemo(() => {
     if (!selected) return [];
-    return filtered.filter(r => r.industry === selected.industry && r.region === selected.region);
-  }, [filtered, selected]);
+    return filtered.filter(r => {
+      const matchesXAxis = (() => {
+        switch (xAxisType) {
+          case "Industry":
+            return r.industry === selected.xAxisValue;
+          case "Region":
+            return r.region === selected.xAxisValue;
+          case "Product":
+            return r.product === selected.xAxisValue;
+          case "Expert":
+            return r.expert === selected.xAxisValue;
+          case "CSAT":
+            return r.csat === selected.xAxisValue;
+          default:
+            return false;
+        }
+      })();
+      
+      return matchesXAxis && r.region === selected.region;
+    });
+  }, [filtered, selected, xAxisType]);
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -70,7 +154,11 @@ export default function DashboardCharts() {
           label="Time"
           value={granularity}
           onChange={setGranularity}
-          options={[{ label: "Month", value: "month" }, { label: "Quarter", value: "quarter" }]}
+          options={[
+            { label: "Month", value: "month" }, 
+            { label: "Quarter", value: "quarter" },
+            { label: "Year", value: "year" }
+          ]}
         />
         {selected && (
           <button onClick={() => setSelected(null)} className="ml-auto rounded-lg border px-3 py-1 text-sm hover:bg-slate-50">
@@ -83,9 +171,9 @@ export default function DashboardCharts() {
       <div className="mt-6 h-72 w-full rounded-2xl border p-3">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} barCategoryGap={20}>
-            <XAxis dataKey="industry" tick={{ fontSize: 12 }} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f1f5f9" }} />
+            <XAxis dataKey={xAxisType} tick={{ fontSize: 12 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} label={{ value: 'Projects', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} />
+            <Tooltip content={<CustomTooltip xAxisType={xAxisType} />} cursor={{ fill: "#f1f5f9" }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             {REGIONS.map((reg) => (
               <Bar
@@ -94,8 +182,8 @@ export default function DashboardCharts() {
                 stackId="a"
                 fill={REGION_COLORS[reg]}
                 onClick={(_, idx) => {
-                  const industry = chartData[idx]?.industry;
-                  setSelected({ industry, region: reg });
+                  const xAxisValue = chartData[idx]?.[xAxisType];
+                  setSelected({ xAxisValue, region: reg });
                 }}
               />
             ))}
@@ -103,8 +191,33 @@ export default function DashboardCharts() {
         </ResponsiveContainer>
       </div>
 
+      {/* X-Axis Selector Dropdowns */}
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-700">X-Axis:</span>
+          <select
+            value={xAxisType}
+            onChange={(e) => handleXAxisChange(e.target.value)}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            disabled={isLoading}
+          >
+            <option value="Industry">Industry</option>
+            <option value="Region">Region</option>
+            <option value="Product">Product</option>
+            <option value="Expert">Expert</option>
+            <option value="CSAT">CSAT</option>
+          </select>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600"></div>
+              Loading...
+            </div>
+          )}
+        </div>
+      </div>
+
       <p className="mt-2 text-xs text-slate-500">
-        Click a colored stack (e.g. Retail → EMEA) to reveal the underlying table below.
+        Click a colored stack segment (e.g. {xAxisType === "Industry" ? "Retail" : xAxisType === "Region" ? "EMEA" : xAxisType === "Product" ? "Core" : xAxisType === "Expert" ? "Ann" : "😀"} → EMEA) to reveal the underlying table below.
       </p>
 
       {/* Table */}
@@ -117,7 +230,7 @@ export default function DashboardCharts() {
                 Showing <strong>{tableRows.length}</strong> records for{" "}
                 <span className="inline-flex items-center gap-1">
                   <Swatch color={REGION_COLORS[selected.region]} />
-                  <span>{selected.industry}</span>
+                  <span>{selected.xAxisValue}</span>
                   <span>·</span>
                   <span>{selected.region}</span>
                   <span>·</span>
@@ -190,16 +303,16 @@ function Segmented({ label, value, onChange, options }) {
   );
 }
 
-function CustomTooltip({ active, payload, label }) {
+function CustomTooltip({ active, payload, label, xAxisType }) {
   if (!active || !payload || !payload.length) return null;
   return (
     <div className="rounded-lg border bg-white p-2 text-xs shadow-sm">
-      <div className="font-semibold">{label}</div>
+      <div className="font-semibold">{xAxisType}: {label}</div>
       {payload.map((pl) => (
         <div key={pl.dataKey} className="flex items-center gap-2">
           <Swatch color={pl.fill} />
           <span>
-            {pl.dataKey}: <strong>{pl.value}</strong>
+            {pl.dataKey}: <strong>{pl.value}</strong> projects
           </span>
         </div>
       ))}
@@ -216,9 +329,7 @@ function randChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function addMonths(date, m) { const d = new Date(date); d.setMonth(d.getMonth() + m); return d; }
 function formatDate(d) { const dt = new Date(d); return dt.toISOString().slice(0,10); }
 
-function createMockData({ industries, regions, monthsBack = 3 }) {
-  const products = ["Core", "Sync", "Analytics", "AI"];
-  const experts = ["Ann", "Ben", "Chao", "Dee", "Evan"];
+function createMockData({ industries, regions, products, experts, csatValues, monthsBack = 3 }) {
   const stages = ["Closed", "Active", "Proposal"];
 
   const today = new Date();
@@ -237,7 +348,7 @@ function createMockData({ industries, regions, monthsBack = 3 }) {
       date: date.toISOString(),
       product: randChoice(products),
       expert: randChoice(experts),
-      csat: ["😀","🙂","😐","🙁"][Math.floor(Math.random()*4)],
+      csat: randChoice(csatValues),
     });
   }
   return out;
